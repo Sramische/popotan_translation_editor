@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<script src="ace/ace.js" type="text/javascript" charset="utf-8"></script>
+		<script src="//js.live.net/v5.0/wl.js"></script>
+		<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+    <style>
+      
+      html{
+        margin: 0 0 0 0;
+      }
+      
+      body {
+        margin: 0 0 0 0;
+      }
+      
+      #header_pane {
+        margin:0 0 0 0;
+        position: absolute;
+        width: 100%;
+        height: 5%;
+        background: gray;
+      }
+    
+      #editor {
+        position: absolute;
+        width: 90%;
+        height: 95%;
+        background-color: lightgray;
+        top:5%;
+      }
+      
+      .ace_offset{
+        color:green;
+      }
+
+    </style>
+	</head>
+  
+	<body>
+		<div id="header_pane">
+		</div>
+		<div id="editor" >
+		</div>
+
+		<script>
+			var editor = ace.edit("editor");
+			editor.getSession().setNewLineMode("windows")
+			editor.setDisplayIndentGuides(false)
+			editor.setBehavioursEnabled(false)
+			editor.setShowPrintMargin(false)
+			editor.setFontSize(14)
+			editor.setShowInvisibles(false);
+		
+		</script>
+	</body>
+</html>
