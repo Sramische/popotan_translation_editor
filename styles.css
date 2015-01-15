@@ -1,0 +1,306 @@
+html {
+  margin: 0 0 0 0;
+}
+      
+body {
+  margin: 0 0 0 0;
+}
+
+#header_pane {
+  margin:0 0 0 0;
+  position: absolute;
+  width: 100%;
+  height: 4%;
+  background: fff;
+  -webkit-box-shadow: 0px 1px 5px 0px rgba(0,0,0,0.75);
+  -moz-box-shadow: 0px 1px 5px 0px rgba(0,0,0,0.75);
+  box-shadow: 0px 1px 5px 0px rgba(0,0,0,0.75);
+  min-height: 40px;
+}
+    
+#editor {
+  position: absolute;
+  width: 100%;
+  height: 95%;
+  background-color: #e5e5e5;
+  top:5%;
+  z-index:1;
+}
+ 
+#red_block{
+  border: 1px solid red;
+  position: absolute;
+  width:100%;
+  top:5%;
+  background:#ffdddd;
+  vertical-align:middle;
+  text-align:center;
+  z-index:2;
+  white-space: pre-wrap;
+} 
+
+#file_tree{
+	position: absolute;
+  width: 100%;
+  height: 95%;
+  top:5%;
+  z-index:1;
+}
+      
+#signin {
+  position:relative;
+  height:80%;
+  top:10%;
+  bottom:10%;
+  display:table-cell;
+  vertical-align:middle;
+  float: right;
+  margin-right:10px;
+}
+
+#open_dialog {
+  position: relative;
+  width:6px;
+  min-width:100px;
+  top:10%;
+  bottom:10%;
+  height:80%;
+  display:table-cell;
+  vertical-align:middle;
+  line-height: 80%;
+  float:left;
+  margin-left:5px;
+}      
+
+#save_file{
+  position: relative;
+  min-width:100px;
+  top:10%;
+  bottom:10%;
+  height:80%;
+  display:table-cell;
+  vertical-align:middle;
+  line-height: 80%;
+  float:left;
+  margin-left:5px;
+}
+
+span.test {
+  display: block;
+  vertical-align: middle;
+  line-height: normal;
+  padding-top: 2%;
+}
+
+.ace_offset{
+  color:green;
+}
+
+.ace_block{
+  background:red;
+}
+
+.ace_block_text{
+  background:yellow;
+}
+
+.btn-text {
+  font-family: Arial;
+  color: #ffffff;
+  font-size: 120%;
+  text-align: center;
+  text-decoration: none;
+}
+
+.btn-blue {
+  background: #3498db;
+  background-image: -webkit-linear-gradient(top, #3498db, #2980b9);
+  background-image: -moz-linear-gradient(top, #3498db, #2980b9);
+  background-image: -ms-linear-gradient(top, #3498db, #2980b9);
+  background-image: -o-linear-gradient(top, #3498db, #2980b9);
+  background-image: linear-gradient(to bottom, #3498db, #2980b9);
+}
+
+.btn-blue:hover {
+  background: #3cb0fd;
+  background-image: -webkit-linear-gradient(top, #3cb0fd, #3498db);
+  background-image: -moz-linear-gradient(top, #3cb0fd, #3498db);
+  background-image: -ms-linear-gradient(top, #3cb0fd, #3498db);
+  background-image: -o-linear-gradient(top, #3cb0fd, #3498db);
+  background-image: linear-gradient(to bottom, #3cb0fd, #3498db);
+  text-decoration: none;
+}
+
+.btn-green {
+  background: #14991d;
+  background-image: -webkit-linear-gradient(top, #14991d, #0d7a29);
+  background-image: -moz-linear-gradient(top, #14991d, #0d7a29);
+  background-image: -ms-linear-gradient(top, #14991d, #0d7a29);
+  background-image: -o-linear-gradient(top, #14991d, #0d7a29);
+  background-image: linear-gradient(to bottom, #14991d, #0d7a29);
+}
+
+.btn-green:hover {
+  background: #1b9f2e;
+  background-image: -webkit-linear-gradient(top, #1b9f2e, #1e822f);
+  background-image: -moz-linear-gradient(top, #1b9f2e, #1e822f);
+  background-image: -ms-linear-gradient(top, #1b9f2e, #1e822f);
+  background-image: -o-linear-gradient(top, #1b9f2e, #1e822f);
+  background-image: linear-gradient(to bottom, #1b9f2e, #1e822f);
+  text-decoration: none;
+}
+
+.btn-red{
+  background: #e02214;
+  background-image: -webkit-linear-gradient(top, #e02214, #9c2222);
+  background-image: -moz-linear-gradient(top, #e02214, #9c2222);
+  background-image: -ms-linear-gradient(top, #e02214, #9c2222);
+  background-image: -o-linear-gradient(top, #e02214, #9c2222);
+  background-image: linear-gradient(to bottom, #e02214, #9c2222);
+}
+
+.btn-gray{
+  background: #bfbfbf;
+  background-image: -webkit-linear-gradient(top, #bfbfbf, #bababa);
+  background-image: -moz-linear-gradient(top, #bfbfbf, #bababa);
+  background-image: -ms-linear-gradient(top, #bfbfbf, #bababa);
+  background-image: -o-linear-gradient(top, #bfbfbf, #bababa);
+  background-image: linear-gradient(to bottom, #bfbfbf, #bababa);
+}
+
+/* CSS Tree menu styles */
+input, select, textarea, th, td { font-size: 3em; }
+ol.tree
+{
+	padding: 0 0 0 30px;
+	width: 500px;
+}
+	li 
+	{ 
+		position: relative; 
+		margin-left: 0px;
+    margin-bottom: 1em;
+		list-style: none;
+	}
+	li.file
+	{
+		margin-left: 0px !important;
+	}
+		li.file a
+		{
+			background: url(img/page_white_text32.gif) no-repeat;
+			padding-left: 35px;
+      font-family: Arial;
+			text-decoration: none;
+      color:#222;
+      font-size: 140%;
+      height: 34px;
+			display: table-cell;
+      vertical-align:middle;
+		}
+	
+  li input
+	{
+		position: absolute;
+		left: 0;
+		margin-left: 0;
+		opacity: 0;
+		z-index: 2;
+		cursor: pointer;
+		height: 1em;
+		width: 1em;
+		top: 0;
+	}
+
+		li input + ol
+		{
+			margin: -0.938em 0 0 -44px; /* 15px */
+			height: 1em;
+		}
+		li input + ol > li { display: none; margin-bottom: 1em; margin-left: 0px !important; padding-left: 1px; }
+	li label
+	{
+		background: url(img/folder32.gif) no-repeat;
+		vertical-align:middle;
+		font-family: Arial;
+		text-decoration: none;
+		color:#222;
+		font-size: 140%;
+		height: 34px;
+		cursor: pointer;
+		display: table-cell;
+		padding-left: 35px;
+		width: 500px;
+	}
+	
+	li label.disabled
+	{
+		background: url(img/folder_gray32.gif) no-repeat;
+		cursor: auto;
+	}
+  
+	li input:checked + ol
+	{
+		margin: -1.25em 0 0 -44px; /* 20px */
+		padding: 1.563em 0 0 80px;
+		height: auto;
+	}
+		li input:checked + ol > li { display: block;   /* 2px */}
+		li input:checked + ol > li:last-child { margin: 0 0 0.063em; /* 1px */ }
+
+
+/*Courtesy of twitter.com/tobiasahlin*/
+/*       |      |      |             */
+/*       |      |      |             */
+/*       V      V      V             */
+
+.spinner {
+  margin: 0 auto 0;
+  width: 70px;
+  text-align: center;
+  vertical-align:middle;
+  top:50%;
+  margin-top:-10px;
+  height:20px;
+  left:50%;
+  margin-left:-70px;
+}
+
+.spinner > div {
+  width: 20px;
+  height: 20px;
+  background-color: #39d;
+
+  border-radius: 100%;
+  display: inline-block;
+  -webkit-animation: bouncedelay 1.4s infinite ease-in-out;
+  animation: bouncedelay 1.4s infinite ease-in-out;
+  /* Prevent first frame from flickering when animation starts */
+  -webkit-animation-fill-mode: both;
+  animation-fill-mode: both;
+}
+
+.spinner .bounce1 {
+  -webkit-animation-delay: -0.32s;
+  animation-delay: -0.32s;
+}
+
+.spinner .bounce2 {
+  -webkit-animation-delay: -0.16s;
+  animation-delay: -0.16s;
+}
+
+@-webkit-keyframes bouncedelay {
+  0%, 80%, 100% { -webkit-transform: scale(0.0) }
+  40% { -webkit-transform: scale(1.0) }
+}
+
+@keyframes bouncedelay {
+  0%, 80%, 100% { 
+    transform: scale(0.0);
+    -webkit-transform: scale(0.0);
+  } 40% { 
+    transform: scale(1.0);
+    -webkit-transform: scale(1.0);
+  }
+}

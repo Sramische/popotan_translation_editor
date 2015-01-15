@@ -2,58 +2,189 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<script src="ace/ace.js" type="text/javascript" charset="utf-8"></script>
-		<script src="//js.live.net/v5.0/wl.js"></script>
-		<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
-    <style>
-      
-      html{
-        margin: 0 0 0 0;
-      }
-      
-      body {
-        margin: 0 0 0 0;
-      }
-      
-      #header_pane {
-        margin:0 0 0 0;
-        position: absolute;
-        width: 100%;
-        height: 5%;
-        background: gray;
-      }
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="styles.css">
+    <link rel="stylesheet" type="text/css" href="bootstrap/css/bootstrap.min.css">
     
-      #editor {
-        position: absolute;
-        width: 90%;
-        height: 95%;
-        background-color: lightgray;
-        top:5%;
-      }
-      
-      .ace_offset{
-        color:green;
-      }
+    <script src="//code.jquery.com/jquery-2.1.1.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/dropbox.js/0.10.2/dropbox.min.js"></script>
+    <script src="jstree/jstree.min.js"></script>
+    <script src="ace/ace.js" type="text/javascript" charset="utf-8"></script>
+    <script src="api.js"></script>
+  </head>
 
-    </style>
-	</head>
-  
 	<body>
-		<div id="header_pane">
+    <div id="header_pane">
+      <div class="spinner" style="position:relative;float:left;display:none;">
+        <div class="bounce1"></div>
+        <div class="bounce2"></div>
+        <div class="bounce3"></div>
+      </div>
+      <button id="btn_file_browser" class="btn" type="button" style="margin-top:5px;margin-left:5px;float:left;">Open file tree</button>
+      <button id="btn_save" class="btn btn-success" type="button" style="margin-top:5px;margin-left:10px;float:left;display:none;">Save</button>
+      
+      <a href="#" class="btn-text" id="signin" style="color: #008bd3;">
+         <img src="img/dropbox32x32.png" style="margin-right:5px;"/>
+         <span id="signin-text">error</span>
+      </a>
 		</div>
-		<div id="editor" >
-		</div>
+    
+    <div id="red_block" class="btn-text" style="color:#333;display:none;" ></div>
+    <div id="editor" style="display:none;"></div>
+    <div id="file_tree"></div>
 
 		<script>
-			var editor = ace.edit("editor");
+			/*----------------ace init--------------*/
+      
+      var editor = ace.edit("editor");
 			editor.getSession().setNewLineMode("windows")
 			editor.setDisplayIndentGuides(false)
 			editor.setBehavioursEnabled(false)
 			editor.setShowPrintMargin(false)
 			editor.setFontSize(14)
 			editor.setShowInvisibles(false);
-		
+			
+			editor.session.selection.on("changeCursor", function(){
+				//console.log(editor.selection.getCursor());
+				}); 
+      
+      /*-------------jstree init--------------*/
+      
+      var tree = new CssTree("file_tree");
+      tree.setOnFileClickListener(function(parent, path){
+        showProgress(true);
+        api.openFile(path, function(contents){
+          if (typeof contents === 'string'){
+            openFile(contents);
+          } else {
+            showError("Dropbox said : " + contents.responseText);
+          }
+          showProgress(false);
+        });
+      }).setOnFolderExpandingListener(function(path){
+        showProgress(true);
+        api.openDir(path, ["text/plain", "inode/directory"], function(arr){
+          showProgress(false);
+          if (arr.length == 0)
+            tree.markEmpty();
+          else  
+            populateBranch(arr);
+        });
+      });
+			
+      /*------------api init------------------*/
+      
+      var api = new DropboxApi();
+      api.setOnAuthListener(function(isSignedIn){
+        if(typeof isSignedIn != "boolean") {
+          showError(isSignedIn);
+          return;
+        }
+        
+        $("#signin-text").text(isSignedIn ? "Sign out" : "Sign in");
+        showButtons(isSignedIn);
+        
+        if(!isSignedIn)
+          return;
+          
+        path = api.getLastFile();
+        if(path){
+          showProgress(true);
+          api.openFile(path, function(contents){
+            if (typeof contents === 'string')
+              openFile(contents);
+            else {
+              populateTree();
+              showError("Dropbox said : " + contents.responseText);
+            }
+          });
+        } else {
+          populateTree();
+        }
+      });
+      
+      /*--------------Click handlers--------*/
+      
+			$("#signin").click(function(){
+        if (api.isAuthenticated()){
+          api.signOut();
+          window.location.reload();
+        }
+        else
+          api.signIn();
+      });
+      
+      $("#btn_file_browser").click(function(){
+        $("#editor").hide();
+        $("#file_tree").show();
+        $("#btn_save").hide();
+        if(tree.isEmpty())
+          populateTree();
+          
+      });
+      
+			$("#btn_save").click(function(){
+				//$("#save_text_id").text("Validating");
+				//$(this).removeClass("btn-green").addClass("btn-red");
+				//ret = validateFormat(editor.getValue());
+				//$("#save_text_id").toggleClass("btn-red").text("Done");
+        api.save(editor.getValue());
+			});
+
+      /*--------------Util funcs--------*/
+      
+      function openFile(contents){
+        $("#file_tree").hide();
+        $("#editor").show();
+        $("#btn_save").show();
+        editor.setValue(contents, -1);
+        showProgress(false);
+      }
+      
+      function showError(message){
+        $("#red_block").text(message);
+        $("#red_block").show();
+        $("#red_block").click(clearError);
+      }
+			
+      function clearError(){
+        $("#red_block").hide();
+        $("#red_block").text('');
+      }
+      
+      function showProgress(show){
+        if (show)
+          $(".spinner").show();
+        else
+          $(".spinner").hide();
+      }
+      
+      function showButtons(show){
+         if (show){
+          $("#btn_save").show();
+          $("#btn_file_browser").show();
+        }
+        else{
+          $("#btn_save").hide();
+          $("#btn_file_browser").hide();
+        }
+      }
+      
+      function populateBranch(arr){
+        arr.forEach(function(fstat){
+          if (fstat.mimeType == "inode/directory")
+            tree.addFolder(fstat.name, fstat.path);
+          else
+            tree.addFile(fstat.name, fstat.path);
+        });
+        showProgress(false);
+      }
+      
+      function populateTree(){
+        showProgress(true);
+        api.openDir(null, ["text/plain", "inode/directory"], populateBranch);
+      }
+      
 		</script>
 	</body>
 </html>
