@@ -1,6 +1,6 @@
 function DropboxApi () {
   var CONST = {
-    APP_KEY : "19acb89abaii09c",  
+    APP_KEY : "usjloqq5lagyr0v",  
     PATCH_FOLDER : "translation_patches[DO_NOT_REMOVE]",
     KEY_PATH : "dropbox_parent_folder",
     KEY_FILE : "dropbox_current_file",
@@ -20,18 +20,6 @@ function DropboxApi () {
 
   this.openDir = function(obj, filter, callback){
     filter = filter || [];
-    /*if (obj && obj.mimeType != "inode/directory"){
-      callback("Object is not a directory");
-      return;
-    }
-    if (obj == null)
-      path = parentDir;
-    else if (obj === -1) {
-      //path = parentDir - /
-    } else {
-      path = obj.path;
-    }
-    */
     path = obj || "/";
     client.readdir(path, null, function(error, simpleList, folderInfo, detailedList){
       if (error){
@@ -46,12 +34,27 @@ function DropboxApi () {
     });
   }
 
-  this.save = function(text){
-    client.writeFile(file, text, null, function(error, fileInfo){
-					console.log(error);
-					console.log(fileInfo);
-					});	
-    return null;
+  this.save = function(text, callback){
+    client.stat(file, null, function(serror, fstat, as){
+      if(serror){
+        callback(serror);
+        return;
+      }
+      
+      if(fstat.versionTag != versionTag){
+        callback("File version conflict.");
+        return;
+      }
+
+      client.writeFile(file, text, null, function(ferror, fileInfo){
+        if(ferror){
+          callback(ferror);
+        } else {
+          versionTag = fileInfo.versionTag;
+          callback(null);
+        }
+      });	
+    });
   }
 
   this.getCurrentPath = function(){
@@ -61,8 +64,28 @@ function DropboxApi () {
     return file;
   }
   
-  this.savePatch = function(text){ 
-    return null;
+  var patchesQueue = new Set();
+  this.savePatches = function(patches, callback){ 
+    if (patches == null || patches.size == 0){
+      callback(null);
+      return;
+    }
+    patchdir = getPatchDir();
+    for(var key in patches){
+      f = patchdir + '/' + key;
+      patchesQueue.add(f);
+      client.writeFile(f, patches[key], null, function(ferror, fileInfo){
+        if(ferror){
+          patchesQueue.clear();
+          callback(ferror);
+        } else
+          patchesQueue.delete(fileInfo.path);
+          if(patchesQueue.size == 0)
+            callback(null);
+      });
+    }
+    
+    console.dir(patchesQueue);
   }
   
   this.setOnAuthListener = function(callback){
@@ -96,6 +119,12 @@ function DropboxApi () {
   
   this.isAuthenticated = function(){
     return client.isAuthenticated();
+  }
+  
+  var getPatchDir = function(){
+    p = file.substring(0, file.lastIndexOf('/') + 1);
+    p += CONST.PATCH_FOLDER;
+    return p;
   }
   
   var setCookie = function(key, value) {
@@ -132,60 +161,6 @@ function DropboxApi () {
   var client = new Dropbox.Client({ key: CONST.APP_KEY });
   client.authDriver(new Dropbox.AuthDriver.Popup({ receiverUrl: window.location.href.split('#')[0] + 'dropbox-callback.html' }));
   client.authenticate({ interactive: false });
-  
-}
-
-function validateFormat(text){
-  //States
-  START = /\[dialog\]/;
-  TEXT = /^(?!0x[0-9a-f]{8}).+$/;
-  OFFSET = /^0x[0-9a-f]{8}$/;
-  BLANK_LINE= /^$/;
-
-  state = START;
-  tokens = text.split(/\r\n/);
-  start = 0;
-  if (START.test(tokens[0]))
-    start++;
-    
-  for (line = start; line < tokens.length; line++) {
-    token = tokens[line];
-    switch(state){
-      case START:
-        expectation = OFFSET;
-        break;
-      case OFFSET:
-        expectation = TEXT;
-        break;
-      case BLANK_LINE:
-        expectation = OFFSET;
-        break;
-      case TEXT:
-        expectation = TEXT;
-        break;
-    }
-
-    result = expectation.test(token);
-    if (!result && expectation == TEXT && state == TEXT){
-      expectation = BLANK_LINE;
-      result = expectation.test(token);
-    }
-
-    if (!result) {
-      if (expectation == OFFSET)
-        expected = "offset";
-      else if (expectation == TEXT)
-        expected = "text";
-      else if (expectation == BLANK_LINE)
-        expected = ["text", "newline"];
-            
-      return {"line": line, "expected": expected, "got": token};
-    }
-          
-    state = expectation;
-  }
-
-  return true;
 }
 
 function CssTree(container){
@@ -201,12 +176,12 @@ function CssTree(container){
 		_li = document.createElement('li');
 		currentNode.append(_li);
 		$("<label>", { for: counter, text: name, path: path })
-      .appendTo(_li)
-      .click(function(e){
-        _id = $(e.target).prop('for')
-        currentNode = $('#ol'+_id);
-        folderCallback($(e.target).data("path"));
-      }).data("path", path);
+    .appendTo(_li)
+    .click(function(e){
+      _id = $(e.target).prop('for')
+      currentNode = $('#ol'+_id);
+      folderCallback($(e.target).data("path"));
+    }).data("path", path);
 		$("<input>", { type: "checkbox", id: counter}).appendTo(_li);
 		$("<ol>", {id:"ol"+counter}).appendTo(_li);
 	}
@@ -235,14 +210,11 @@ function CssTree(container){
     return root.children().length == 0;
   }
   
-  this.showProgress = function(){
-    
+  this.removeCallback = function(){
+    parent = currentNode.parent();
+    parent.find("> label").unbind();
   }
-  
-  this.hideProgress = function(){
-    
-  }
-  
+
   this.setOnFileClickListener = function(callback){
     fileCallback = callback;
     return this;
@@ -255,4 +227,94 @@ function CssTree(container){
   
   var fileCallback = null;
   var folderCallback = null;
+}
+
+function Script(_editor){
+  var OFFSET_REGEX = /^0x[0-9a-f]{8}$/;
+  var editor = _editor;
+  var currentBlock = {
+    row: -1,
+    offset: null,
+    startRow: -1
+  };
+  var changedBlocks = {}; 
+  
+  this.onTextChanged = function(data){
+    if (currentBlock.row == data.range.start.row)
+      return;
+    console.log(data);
+    row = currentBlock.row = data.range.start.row;
+    while(!OFFSET_REGEX.test(editor.session.getLine(--row)))
+      if(row < 0)
+        return;
+    changedBlocks[editor.session.getLine(row)] = row;
+  }
+  
+  this.getPatches = function(){
+    patches = {};
+    for(key in changedBlocks){
+      row = changedBlocks[key] + 1;
+      body = '';
+      while(!OFFSET_REGEX.test(editor.session.getLine(row))){
+        body += editor.session.getLine(row) + "\r\n";
+        row++;
+      }
+      patches[key] = body;
+    }
+
+    return patches;
+  }
+  
+  this.validateScript = function(text){
+    //States
+    START = /\[dialog\]/;
+    TEXT = /^(?!0x[0-9a-f]{8}).+$/;
+    OFFSET = OFFSET_REGEX;
+    BLANK_LINE= /^$/;
+
+    state = START;
+    tokens = text.split(/\r\n/);
+    start = 0;
+    if (START.test(tokens[0]))
+      start++;
+      
+    for (line = start; line < tokens.length; line++) {
+      token = tokens[line];
+      switch(state){
+        case START:
+          expectation = OFFSET;
+          break;
+        case OFFSET:
+          expectation = TEXT;
+          break;
+        case BLANK_LINE:
+          expectation = OFFSET;
+          break;
+        case TEXT:
+          expectation = TEXT;
+          break;
+      }
+
+      result = expectation.test(token);
+      if (!result && expectation == TEXT && state == TEXT){
+        expectation = BLANK_LINE;
+        result = expectation.test(token);
+      }
+
+      if (!result) {
+        if (expectation == OFFSET)
+          expected = "offset";
+        else if (expectation == TEXT)
+          expected = "text";
+        else if (expectation == BLANK_LINE)
+          expected = ["text", "newline"];
+              
+        return {"line": line, "expected": expected, "got": token};
+      }
+            
+      state = expectation;
+    }
+
+    return true;
+  }
 }

@@ -7,32 +7,32 @@ body {
 }
 
 #header_pane {
-  margin:0 0 0 0;
   position: absolute;
   width: 100%;
-  height: 4%;
+  margin:0 0 0 0;
+  height: 36px;
   background: fff;
   -webkit-box-shadow: 0px 1px 5px 0px rgba(0,0,0,0.75);
   -moz-box-shadow: 0px 1px 5px 0px rgba(0,0,0,0.75);
   box-shadow: 0px 1px 5px 0px rgba(0,0,0,0.75);
-  min-height: 40px;
 }
-    
+ 
 #editor {
   position: absolute;
   width: 100%;
-  height: 95%;
   background-color: #e5e5e5;
-  top:5%;
+  top:42px;
   z-index:1;
+  bottom:0px;
 }
  
 #red_block{
-  border: 1px solid red;
   position: absolute;
-  width:100%;
-  top:5%;
-  background:#ffdddd;
+  width: 100%;
+  top:40px;
+  border: 1px solid white;
+  background: rgba(255, 0, 0, .5);
+  background:#ffdddd22;
   vertical-align:middle;
   text-align:center;
   z-index:2;
@@ -40,49 +40,20 @@ body {
 } 
 
 #file_tree{
-	position: absolute;
+  position: absolute;
   width: 100%;
-  height: 95%;
-  top:5%;
+  top:40px;
   z-index:1;
 }
       
 #signin {
   position:relative;
-  height:80%;
-  top:10%;
-  bottom:10%;
+  top:5%;
+  bottom:5%;
   display:table-cell;
   vertical-align:middle;
   float: right;
   margin-right:10px;
-}
-
-#open_dialog {
-  position: relative;
-  width:6px;
-  min-width:100px;
-  top:10%;
-  bottom:10%;
-  height:80%;
-  display:table-cell;
-  vertical-align:middle;
-  line-height: 80%;
-  float:left;
-  margin-left:5px;
-}      
-
-#save_file{
-  position: relative;
-  min-width:100px;
-  top:10%;
-  bottom:10%;
-  height:80%;
-  display:table-cell;
-  vertical-align:middle;
-  line-height: 80%;
-  float:left;
-  margin-left:5px;
 }
 
 span.test {

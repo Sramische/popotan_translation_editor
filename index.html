@@ -21,8 +21,8 @@
         <div class="bounce2"></div>
         <div class="bounce3"></div>
       </div>
-      <button id="btn_file_browser" class="btn" type="button" style="margin-top:5px;margin-left:5px;float:left;">Open file tree</button>
-      <button id="btn_save" class="btn btn-success" type="button" style="margin-top:5px;margin-left:10px;float:left;display:none;">Save</button>
+      <button id="btn_file_browser" class="btn" type="button" style="margin-top:3px;margin-left:5px;float:left;">Open file tree</button>
+      <button id="btn_save" class="btn btn-success" type="button" style="margin-top:3px;margin-left:10px;float:left;display:none;">Save</button>
       
       <a href="#" class="btn-text" id="signin" style="color: #008bd3;">
          <img src="img/dropbox32x32.png" style="margin-right:5px;"/>
@@ -35,7 +35,8 @@
     <div id="file_tree"></div>
 
 		<script>
-			/*----------------ace init--------------*/
+
+      /*----------------ace init--------------*/
       
       var editor = ace.edit("editor");
 			editor.getSession().setNewLineMode("windows")
@@ -45,20 +46,25 @@
 			editor.setFontSize(14)
 			editor.setShowInvisibles(false);
 			
-			editor.session.selection.on("changeCursor", function(){
-				//console.log(editor.selection.getCursor());
-				}); 
+      var ps = new Script(editor);
+
+			//editor.session.selection.on("changeCursor", function(){}); 
       
       /*-------------jstree init--------------*/
       
       var tree = new CssTree("file_tree");
       tree.setOnFileClickListener(function(parent, path){
+        if(path == api.getLastFile()){
+          openFile(null);
+          return;
+        }
+        
         showProgress(true);
         api.openFile(path, function(contents){
           if (typeof contents === 'string'){
             openFile(contents);
           } else {
-            showError("Dropbox said : " + contents.responseText);
+            showError("Dropbox said : " + contents.response.error);
           }
           showProgress(false);
         });
@@ -96,7 +102,7 @@
               openFile(contents);
             else {
               populateTree();
-              showError("Dropbox said : " + contents.responseText);
+              showError("Dropbox said : " + contents.response.error);
             }
           });
         } else {
@@ -125,11 +131,41 @@
       });
       
 			$("#btn_save").click(function(){
-				//$("#save_text_id").text("Validating");
-				//$(this).removeClass("btn-green").addClass("btn-red");
-				//ret = validateFormat(editor.getValue());
-				//$("#save_text_id").toggleClass("btn-red").text("Done");
-        api.save(editor.getValue());
+        clearError();
+				$("#btn_save").text("Validating...");
+        content = editor.getValue();
+        result = ps.validateScript(content);
+
+        if (typeof result === 'boolean'){
+          showProgress(true);
+          $("#btn_save").text("Saving...");
+          api.savePatches(ps.getPatches(), function(patchresult){
+            console.log("PATCHES SAVED");
+            if(patchresult == null){
+              api.save(content, function(saveresult){
+                console.log("SCRIPT SAVED");
+                if(saveresult instanceof Dropbox.ApiError){
+                  showError("Dropbox said: " + saveresult.response.error);
+                }else if(typeof(saveresult) === 'string'){
+                  showError(saveresult);
+                }else if (saveresult == null){
+                  $("#btn_save").hide();
+                }
+                $("#btn_save").text("Save");
+                 showProgress(false);
+              });
+              
+            } else if(patchresult instanceof Dropbox.ApiError){
+              showError("Dropbox said: " + result.response.error);
+              showProgress(false);
+            }
+          });
+          
+        } else {
+          editor.gotoLine(result.line, 0, true);
+          showError("On line " + result.line + " unexpected token: '" + result.got + "'");
+          $("#btn_save").text("Save");
+        }
 			});
 
       /*--------------Util funcs--------*/
@@ -137,9 +173,15 @@
       function openFile(contents){
         $("#file_tree").hide();
         $("#editor").show();
-        $("#btn_save").show();
-        editor.setValue(contents, -1);
-        showProgress(false);
+        if(contents != null){
+          editor.session.on("change", function(){});
+          editor.setValue(contents, -1);
+          editor.session.on("change", function(delta){
+            $("#btn_save").show();
+            ps.onTextChanged(delta.data);
+          });
+          showProgress(false);
+        }
       }
       
       function showError(message){
@@ -162,11 +204,9 @@
       
       function showButtons(show){
          if (show){
-          $("#btn_save").show();
           $("#btn_file_browser").show();
         }
         else{
-          $("#btn_save").hide();
           $("#btn_file_browser").hide();
         }
       }
@@ -178,6 +218,7 @@
           else
             tree.addFile(fstat.name, fstat.path);
         });
+        tree.removeCallback();
         showProgress(false);
       }
       
@@ -185,7 +226,7 @@
         showProgress(true);
         api.openDir(null, ["text/plain", "inode/directory"], populateBranch);
       }
-      
+
 		</script>
 	</body>
 </html>
