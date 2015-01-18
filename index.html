@@ -112,6 +112,46 @@
       
       /*--------------Click handlers--------*/
       
+      function onSaveClick(){
+        clearError();
+				$("#btn_save").text("Validating...");
+        content = editor.getValue();
+        result = ps.validateScript(content);
+
+        if (typeof result === 'boolean'){
+          showProgress(true);
+          $("#btn_save").text("Saving...");
+          toggleSaveBtn(false);
+          api.savePatches(ps.getPatches(), function(patchresult){
+            console.log("PATCHES SAVED");
+            if(patchresult == null){
+              api.save(content, function(saveresult){
+                console.log("SCRIPT SAVED");
+                if(saveresult instanceof Dropbox.ApiError){
+                  showError("Dropbox said: " + saveresult.response.error);
+                }else if(typeof(saveresult) === 'string'){
+                  showError(saveresult);
+                }else if (saveresult == null){
+                  $("#btn_save").hide();
+                }
+                toggleSaveBtn(true);
+                $("#btn_save").text("Save");
+                showProgress(false);
+              });
+              
+            } else if(patchresult instanceof Dropbox.ApiError){
+              showError("Dropbox said: " + result.response.error);
+              showProgress(false);
+            }
+          });
+          
+        } else {
+          editor.gotoLine(result.line, 0, true);
+          showError("On line " + result.line + " unexpected token: '" + result.got + "'");
+          $("#btn_save").text("Save");
+        }
+      }
+      
 			$("#signin").click(function(){
         if (api.isAuthenticated()){
           api.signOut();
@@ -129,45 +169,9 @@
           populateTree();
           
       });
+  
+      toggleSaveBtn(true);
       
-			$("#btn_save").click(function(){
-        clearError();
-				$("#btn_save").text("Validating...");
-        content = editor.getValue();
-        result = ps.validateScript(content);
-
-        if (typeof result === 'boolean'){
-          showProgress(true);
-          $("#btn_save").text("Saving...");
-          api.savePatches(ps.getPatches(), function(patchresult){
-            console.log("PATCHES SAVED");
-            if(patchresult == null){
-              api.save(content, function(saveresult){
-                console.log("SCRIPT SAVED");
-                if(saveresult instanceof Dropbox.ApiError){
-                  showError("Dropbox said: " + saveresult.response.error);
-                }else if(typeof(saveresult) === 'string'){
-                  showError(saveresult);
-                }else if (saveresult == null){
-                  $("#btn_save").hide();
-                }
-                $("#btn_save").text("Save");
-                 showProgress(false);
-              });
-              
-            } else if(patchresult instanceof Dropbox.ApiError){
-              showError("Dropbox said: " + result.response.error);
-              showProgress(false);
-            }
-          });
-          
-        } else {
-          editor.gotoLine(result.line, 0, true);
-          showError("On line " + result.line + " unexpected token: '" + result.got + "'");
-          $("#btn_save").text("Save");
-        }
-			});
-
       /*--------------Util funcs--------*/
       
       function openFile(contents){
@@ -188,6 +192,7 @@
         $("#red_block").text(message);
         $("#red_block").show();
         $("#red_block").click(clearError);
+        toggleSaveBtn(true);
       }
 			
       function clearError(){
@@ -200,6 +205,16 @@
           $(".spinner").show();
         else
           $(".spinner").hide();
+      }
+      
+      function toggleSaveBtn(enable){
+        if(enable){
+          $("#btn_save").removeClass("disabled");
+          $("#btn_save").click(onSaveClick);
+        } else {
+          $("#btn_save").addClass("disabled");
+          $("#btn_save").unbind();
+        }
       }
       
       function showButtons(show){
