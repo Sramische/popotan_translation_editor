@@ -45,7 +45,7 @@
 			editor.setShowPrintMargin(false)
 			editor.setFontSize(14)
 			editor.setShowInvisibles(false);
-			
+			editor.commands.removeCommand('find');
       var ps = new Script(editor);
 
 			//editor.session.selection.on("changeCursor", function(){}); 
