@@ -84,8 +84,6 @@ function DropboxApi () {
             callback(null);
       });
     }
-    
-    console.dir(patchesQueue);
   }
   
   this.setOnAuthListener = function(callback){
@@ -242,7 +240,6 @@ function Script(_editor){
   this.onTextChanged = function(data){
     if (currentBlock.row == data.range.start.row)
       return;
-    console.log(data);
     row = currentBlock.row = data.range.start.row;
     while(!OFFSET_REGEX.test(editor.session.getLine(--row)))
       if(row < 0)
