@@ -7,6 +7,8 @@ function DropboxApi () {
   }
   
   this.openFile = function(path, callback){
+    if (path == null)
+      path = file;
     client.readFile(path, null, function(error, contents, fileInfo, rangeInfo){
       if (error){
         callback(error);
@@ -40,9 +42,12 @@ function DropboxApi () {
         callback(serror);
         return;
       }
-      
+
       if(fstat.versionTag != versionTag){
-        callback("File version conflict.");
+        oldTag = versionTag;
+        res = new Object();
+        res['versionTag'] = fstat.versionTag;
+        callback(res);
         return;
       }
 
@@ -56,7 +61,11 @@ function DropboxApi () {
       });	
     });
   }
-
+  
+  this.swapTags = function(){
+    versionTag = oldTag;
+  }
+  
   this.getCurrentPath = function(){
   }
   
@@ -155,6 +164,7 @@ function DropboxApi () {
   var authCallback = function(b){};
   
   var versionTag = null;
+  var oldTag = null;
   
   var client = new Dropbox.Client({ key: CONST.APP_KEY });
   client.authDriver(new Dropbox.AuthDriver.Popup({ receiverUrl: window.location.href.split('#')[0] + 'dropbox-callback.html' }));
@@ -235,9 +245,18 @@ function Script(_editor){
     offset: null,
     startRow: -1
   };
-  var changedBlocks = {}; 
+  var changedBlocks = null; 
+  var initialBlocks = null;
+  var lastDiff = [];
   
-  this.onTextChanged = function(data){
+  var errorlog_token = null;
+  $( document ).ready(function() {
+    $.get( "http://inspirationdriven.com/request_token?p=popotan", function( data ) {
+      auth_token = data;
+    });
+  });
+  
+  /*this.onTextChanged = function(data){
     if (currentBlock.row == data.range.start.row)
       return;
     row = currentBlock.row = data.range.start.row;
@@ -245,24 +264,68 @@ function Script(_editor){
       if(row < 0)
         return;
     changedBlocks[editor.session.getLine(row)] = row;
+  }*/
+  
+  this.loadScript = function(text, line){
+    editor.setValue(text, -1);
+    if (line > 1)
+      editor.moveCursorTo(line, 0);
+      
+    initialBlocks = parseScript(editor.getValue());
+    lastDiff = [];
+  }
+  
+  this.getScript = function(){
+    content = editor.getValue();
+    changedBlocks = parseScript(content);
+    return content;
+  }
+  
+  this.patchScript = function(newText, patches){
+    newBlocks = parseScript(newText);
+    newDiff = getDiff(initialBlocks, newBlocks);
+    conflictIndices = [];
+    for (index in newDiff)
+      if ($.inArray(newDiff[index], lastDiff) != -1)
+        conflictIndices.push(newDiff[index]);
+    if (conflictIndices.length > 0)
+      throw "Conflict blocks found. Manual patching required. Conflict indices: " + conflictIndices.join(", ");
+
+    for (var key in patches)
+      newBlocks.set(key, patches[key]);
+      
+    newContent = "[dialog]\r\n";
+    for (var key of newBlocks.keys()){
+      newContent += key;
+      newContent += "\r\n";
+      newContent += newBlocks.get(key);
+      newContent += "\r\n";
+    }
+    
+    return newContent.substring(0, newContent.length - 2);
   }
   
   this.getPatches = function(){
+    lastDiff = getDiff(initialBlocks, changedBlocks);
     patches = {};
-    for(key in changedBlocks){
-      row = changedBlocks[key] + 1;
-      body = '';
-      while(!OFFSET_REGEX.test(editor.session.getLine(row))){
-        body += editor.session.getLine(row) + "\r\n";
-        row++;
-      }
-      patches[key] = body;
+    for(i in lastDiff) {
+      key = lastDiff[i];
+      patches[key] = changedBlocks.get(key);
+      //patches[key] += "\r\n";
     }
-
-    return patches;
+    return patches;  
   }
   
-  this.validateScript = function(text){
+  var getDiff = function(map1, map2){
+    changedIndices = [];
+    for(var key of map1.keys()){
+      if (map1.get(key) != map2.get(key))
+        changedIndices.push(key);
+    }
+    return changedIndices;
+  }
+  
+  var parseScript = function(text){
     //States
     START = /\[dialog\]/;
     TEXT = /^(?!0x[0-9a-f]{8}).+$/;
@@ -274,21 +337,31 @@ function Script(_editor){
     start = 0;
     if (START.test(tokens[0]))
       start++;
+    
+    blocks = new Map();
+    currentIndex = null
       
     for (line = start; line < tokens.length; line++) {
       token = tokens[line];
+      
       switch(state){
         case START:
           expectation = OFFSET;
           break;
         case OFFSET:
           expectation = TEXT;
+          currentIndex = tokens[line - 1];
+          blocks.set(currentIndex, '');
           break;
         case BLANK_LINE:
           expectation = OFFSET;
           break;
         case TEXT:
           expectation = TEXT;
+          str = blocks.get(currentIndex);
+          str += tokens[line - 1];
+          str += '\r\n';
+          blocks.set(currentIndex, str);
           break;
       }
 
@@ -306,12 +379,12 @@ function Script(_editor){
         else if (expectation == BLANK_LINE)
           expected = ["text", "newline"];
               
-        return {"line": line, "expected": expected, "got": token};
+        throw {"line": line, "expected": expected, "got": token};
       }
             
       state = expectation;
     }
 
-    return true;
+    return blocks;
   }
 }

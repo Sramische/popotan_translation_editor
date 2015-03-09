@@ -89,7 +89,7 @@
         }
         
         $("#signin-text").text(isSignedIn ? "Sign out" : "Sign in");
-        showButtons(isSignedIn);
+        showBrowseBtn(isSignedIn);
         
         if(!isSignedIn)
           return;
@@ -115,40 +115,35 @@
       function onSaveClick(){
         clearError();
 				$("#btn_save").text("Validating...");
-        content = editor.getValue();
-        result = ps.validateScript(content);
-
-        if (typeof result === 'boolean'){
+        toggleSaveBtn(false);
+        try {
+          content = ps.getScript();
+          patches = ps.getPatches();
+          if (patches.size == 0){
+            showError("Nothing to save.");
+            $("#btn_save").text("Save");
+            return;
+          }
           showProgress(true);
           $("#btn_save").text("Saving...");
-          toggleSaveBtn(false);
-          api.savePatches(ps.getPatches(), function(patchresult){
-            console.log("PATCHES SAVED");
+          
+          api.savePatches(patches, function(patchresult){
             if(patchresult == null){
-              api.save(content, function(saveresult){
-                console.log("SCRIPT SAVED");
-                if(saveresult instanceof Dropbox.ApiError){
-                  showError("Dropbox said: " + saveresult.response.error);
-                }else if(typeof(saveresult) === 'string'){
-                  showError(saveresult);
-                }else if (saveresult == null){
-                  $("#btn_save").hide();
-                }
-                toggleSaveBtn(true);
-                $("#btn_save").text("Save");
-                showProgress(false);
-              });
-              
+              api.save(content, onSave);
             } else if(patchresult instanceof Dropbox.ApiError){
               showError("Dropbox said: " + result.response.error);
               showProgress(false);
+              resetSaveBtn();
             }
           });
-          
-        } else {
-          editor.gotoLine(result.line, 0, true);
-          showError("On line " + result.line + " unexpected token: '" + result.got + "'");
-          $("#btn_save").text("Save");
+        }catch(err){
+          resetSaveBtn();
+          showProgress(false);
+          if(typeof err['line'] != 'undefined'){
+            editor.gotoLine(result.line, 0, true);
+            showError("On line " + err.line + " unexpected token: '" + err.got + "'");
+          } else
+            alert(err);
         }
       }
       
@@ -179,20 +174,73 @@
         $("#editor").show();
         if(contents != null){
           editor.session.on("change", function(){});
-          editor.setValue(contents, -1);
+          try{ 
+            ps.loadScript(contents);
+          }
+          catch(err){
+            editor.gotoLine(err.line, 0, true);
+            showError("On line " + err.line + " unexpected token: '" + err.got + "'");
+          }
           editor.session.on("change", function(delta){
             $("#btn_save").show();
-            ps.onTextChanged(delta.data);
           });
           showProgress(false);
         }
       }
       
+      function onSave(saveresult){
+        if(saveresult == null){
+          resetSaveBtn();
+          showProgress(false);
+          $("#btn_save").hide();
+          return;
+        }
+        console.log(saveresult);
+        if (saveresult != null && typeof saveresult['versionTag'] != 'undefined'){
+          //Handling conflict
+          showProgress(true);
+          $("#btn_save").text("Please wait...");
+          api.openFile(null, function(contents){
+            //api.swapTags();
+            if (typeof contents === 'string')
+              tryPatching(contents);
+            else {
+              showError("Dropbox failed to reload the file. THIS SHOULDN'T'VE HAPPENED! Anyways, changes are saved separately, so please contact me and I'll fix everything :)");
+            }
+          });
+        }else if(saveresult instanceof Dropbox.ApiError){
+          showError("Dropbox said: " + saveresult.response.error);
+        }else if(typeof(saveresult) === 'string'){
+          showError(saveresult);
+        }
+        
+        showProgress(false);
+        resetSaveBtn();
+      }
+      
+      function tryPatching(contents){
+        console.log("trypatching");
+        try{
+          $("#btn_save").text("Patching...");
+          newContent = ps.patchScript(contents, patches);
+          console.log("curpos "+editor.getCursorPosition().row);
+          ps.loadScript(newContent, editor.getCursorPosition().row);
+          api.save(newContent, onSave);
+        }catch(err){
+          resetSaveBtn();
+          if(typeof err['line'] != 'undefined'){
+            editor.gotoLine(result.line, 0, true);
+            showError("On line " + err.line + " unexpected token: '" + err.got + "'");
+          } else {
+            alert(err);
+          }
+        }
+      }
+
       function showError(message){
         $("#red_block").text(message);
         $("#red_block").show();
         $("#red_block").click(clearError);
-        toggleSaveBtn(true);
       }
 			
       function clearError(){
@@ -217,7 +265,12 @@
         }
       }
       
-      function showButtons(show){
+      function resetSaveBtn(){
+        toggleSaveBtn(true);
+        $("#btn_save").text("Save");
+      }
+      
+      function showBrowseBtn(show){
          if (show){
           $("#btn_file_browser").show();
         }
